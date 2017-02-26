@@ -5,6 +5,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Clients table
+:- dynamic(nom/2).
+:- dynamic(adresse/2).
+:- dynamic(localite/2).
+:- dynamic(cat/2).
+:- dynamic(compte/2).
 nom("B062","Goffin").
 nom("B112","Hansenne").
 nom("B332","Monti").
@@ -91,6 +96,8 @@ compte("F011","0").
 compte("K729","0").
 
 % Commande table
+:- dynamic(ncli_co/2).
+:- dynamic(date/2).
 ncli_co("30178","K111").
 ncli_co("30179","C400").
 ncli_co("30182","S127").
@@ -108,6 +115,8 @@ date("30186","2009-01-02").
 date("30188","2009-01-02").
 
 % Detail table
+:- dynamic(npro_de/2).
+:- dynamic(qcom/2).
 npro_de("30178","CS464").
 npro_de("30179","CS262").
 npro_de("30179","PA60").
@@ -139,6 +148,9 @@ qcom("30184","20").
 qcom("30188","22").
 
 % Produit table
+:- dynamic(libelle/2).
+:- dynamic(prix/2).
+:- dynamic(qstock/2).
 libelle("CS262","Chev. Sapin 200*6*2").
 libelle("CS264","Chev. Sapin 200*6*4").
 libelle("CS464","Chev. Sapin 400*6*4").
@@ -164,7 +176,14 @@ qstock("PA45","580").
 qstock("PH222","1220").
 
 % Table columnns
+:- dynamic(client/1).
+:- dynamic(commande/1).
+:- dynamic(detail/1).
+:- dynamic(produit/1).
 client([nom, adresse, localite, cat, compte]).
+commande([ncli_co, date]).
+detail([npro_de, qcom]).
+produit([libelle, prix, qstock]).
 
 %%%
 % Rules
@@ -172,49 +191,95 @@ client([nom, adresse, localite, cat, compte]).
 % Select columns from a table
 select(_,_).
 select(X, [H|T]) :-
-		    select_column(X, H),
-		    select(X, T).
+        select_column(X, H),
+        select(X, T).
 
 is_column_in_table(TableName, ColumnName) :- 
-			G =.. [TableName,L], call(G),member(ColumnName, L), !.
+        get_table_columns(TableName,L),member(ColumnName, L), !.
 
 column_as_list(ColumnName,L) :- G =.. [ColumnName], findall(Y, call(G,_,Y), L).
 
 select_column(TableName, ColumnName) :- is_column_in_table(TableName, ColumnName)
-					-> column_as_list(ColumnName, L),
-					   print_table(L)
-					; write("No such column in table "),
-				          write(TableName), nl.
+	-> column_as_list(ColumnName, L),
+        print_table(L)
+        ; write("No such column in table "),
+        write(TableName), nl.
 
 get_client(Ncli,Nom,Adresse,Localite,Cat,Compte) :- 
-    nom(Ncli,Nom),
-    adresse(Ncli,Adresse),
-    localite(Ncli,Localite),
-    cat(Ncli,Cat),
-    compte(Ncli,Compte).
+        nom(Ncli,Nom),
+        adresse(Ncli,Adresse),
+        localite(Ncli,Localite),
+        cat(Ncli,Cat),
+        compte(Ncli,Compte).
+
+%% Create columns
+register_column_in_table(TableName, ColumnName) :-
+        get_table_columns(TableName, L), append(L, [ColumnName], NL),
+        rule_replace_list(TableName, NL).
+
+create_columns(_,[]).
+create_columns(TableName, [H|T]) :- register_column_in_table(TableName, H),
+        add_rule_two_args(H), create_columns(TableName, T).
 
 %% Create table
-add_columns(_,[]).
-add_columns(TableName, [H|T]) :- assertz(H), add_columns(TableName, T).
+create_table(TableName, Columns) :- add_rule_empty_list(TableName),
+        create_columns(TableName,Columns).
 
-create_table(TableName, Columns) :- assertz(TableName),
-                                    add_columns(TableName,Columns).
+%% Drop a column
+delete_column_in_table(TableName, ColumnName) :-
+        get_table_columns(TableName, L), delete(L,ColumnName,NL),
+        rule_replace_list(TableName, NL).
 
+drop_column(TableName, ColumnName) :-
+	is_column_in_table(TableName, ColumnName) ->
+        delete_column_in_table(TableName, ColumnName),
+	rm_rule_two_args(ColumnName) ;
+	write("No such column in table "), write(TableName), nl.
+
+drop_columns(_,[]).
+drop_columns(TableName, [H|T]) :- drop_column(TableName, H),
+        drop_columns(TableName, T).
+        
+
+
+%% Drop a table
+drop_table(TableName) :- get_table_columns(TableName, L),
+        drop_columns(TableName, L),
+        rm_rule_one_arg(TableName).
+
+%% Drop a row matching predicate 
 %% Insert values into a table
 %insert(TableName, Key, Value) :- assertz(TableName(Key, Value)).
 
 
 p_print_table([],_).
 p_print_table([H|T], N) :- write(N), write(" -> "), write(H), nl,
-                            N1 is N+1, p_print_table(T, N1).
+        N1 is N+1, p_print_table(T, N1).
 print_table(X) :- p_print_table(X, 0).
 
 
-%% Create a REPL to avoid unnecessary output?
+%% Utils
 db_repl :-
-    repeat,
-    write('> '),
-    read(X),
-    call(X),
-    fail.
+        repeat,
+        write('> '),
+        read(X),
+        call(X),
+        fail.
 
+add_rule_empty_list(Rule) :- dynamic(Rule/1), G =.. [Rule,[]],call(assertz(G)).
+
+%%% XXX how to avoid _,_ -> true ?
+add_rule_two_args(Rule) :- dynamic(Rule/2), G =.. [Rule,_,_],call(assertz(G)).
+
+rule_replace_list(Rule,List) :- rm_rule_one_arg(Rule),
+        dynamic(Rule/1), G =.. [Rule,List], call(assertz(G)).
+
+rm_rule_no_args(Rule) :- G =.. [Rule],call(retractall(G)).
+
+rm_rule_one_arg(Rule) :- rm_rule_no_args(Rule),
+        G =.. [Rule,_],call(retractall(G)).
+
+rm_rule_two_args(Rule) :- rm_rule_no_args(Rule),
+        G =.. [Rule,_,_],call(retractall(G)).
+
+get_table_columns(TableName, List) :- G =.. [TableName, List], call(G).
