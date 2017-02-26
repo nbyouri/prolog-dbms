@@ -5,11 +5,30 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Clients table
+:- dynamic(ncli/2).
 :- dynamic(nom/2).
 :- dynamic(adresse/2).
 :- dynamic(localite/2).
 :- dynamic(cat/2).
 :- dynamic(compte/2).
+
+ncli("B062","B062").
+ncli("B112","B112").
+ncli("B332","B332").
+ncli("B512","B512").
+ncli("C003","C003").
+ncli("C123","C123").
+ncli("C400","C400").
+ncli("D063","D063").
+ncli("F010","F010").
+ncli("F400","F400").
+ncli("K111","K111").
+ncli("L422","L422").
+ncli("S127","S127").
+ncli("S712","S712").
+ncli("F011","F011").
+ncli("K729","K729").
+
 nom("B062","Goffin").
 nom("B112","Hansenne").
 nom("B332","Monti").
@@ -96,8 +115,18 @@ compte("F011","0").
 compte("K729","0").
 
 % Commande table
+:- dynamic(ncom_co/2).
 :- dynamic(ncli_co/2).
 :- dynamic(date/2).
+
+ncom_co("30178","30178").
+ncom_co("30179","30179").
+ncom_co("30182","30182").
+ncom_co("30184","30184").
+ncom_co("30185","30185").
+ncom_co("30186","30186").
+ncom_co("30188","30188").
+
 ncli_co("30178","K111").
 ncli_co("30179","C400").
 ncli_co("30182","S127").
@@ -115,8 +144,25 @@ date("30186","2009-01-02").
 date("30188","2009-01-02").
 
 % Detail table
+:- dynamic(ncom_de/2).
 :- dynamic(npro_de/2).
 :- dynamic(qcom/2).
+
+ncom_de("30178","30178").
+ncom_de("30179","30179").
+ncom_de("30179","30179").
+ncom_de("30182","30182").
+ncom_de("30184","30184").
+ncom_de("30185","30185").
+ncom_de("30185","30185").
+ncom_de("30185","30185").
+ncom_de("30186","30186").
+ncom_de("30188","30188").
+ncom_de("30188","30188").
+ncom_de("30188","30188").
+ncom_de("30184","30184").
+ncom_de("30188","30188").
+
 npro_de("30178","CS464").
 npro_de("30179","CS262").
 npro_de("30179","PA60").
@@ -148,9 +194,19 @@ qcom("30184","20").
 qcom("30188","22").
 
 % Produit table
+:- dynamic(npro/2).
 :- dynamic(libelle/2).
 :- dynamic(prix/2).
 :- dynamic(qstock/2).
+
+npro("CS262","CS262").
+npro("CS264","CS264").
+npro("CS464","CS464").
+npro("PA60","PA60").
+npro("PS222","PS222").
+npro("PA45","PA45").
+npro("PH222","PH222").
+
 libelle("CS262","Chev. Sapin 200*6*2").
 libelle("CS264","Chev. Sapin 200*6*4").
 libelle("CS464","Chev. Sapin 400*6*4").
@@ -180,10 +236,11 @@ qstock("PH222","1220").
 :- dynamic(commande/1).
 :- dynamic(detail/1).
 :- dynamic(produit/1).
-client([nom, adresse, localite, cat, compte]).
-commande([ncli_co, date]).
-detail([npro_de, qcom]).
-produit([libelle, prix, qstock]).
+
+client([ncli, nom, adresse, localite, cat, compte]).
+commande([ncom_co, ncli_co, date]).
+detail([ncom_de, npro_de, qcom]).
+produit([npro, libelle, prix, qstock]).
 
 %%%
 % Rules
@@ -248,8 +305,16 @@ drop_table(TableName) :- get_table_columns(TableName, L),
         rm_rule_one_arg(TableName).
 
 %% Drop a row matching predicate 
+% TODO
+
 %% Insert values into a table
-%insert(TableName, Key, Value) :- assertz(TableName(Key, Value)).
+insert_row(_, _, []).
+insert_row(ID, [H|T], [H2|T2]) :- column_set_value(H, ID, H2),
+        insert_row(ID, T, T2).
+insert(TableName, [ID|Values]) :- get_table_columns(TableName,ColumnNames),
+        length(ColumnNames, L1), length([ID|Values], L2),
+        L1 = L2 -> insert_row(ID, ColumnNames, [ID|Values])
+        ; write("Arguments do not match the table "), write(TableName), nl.
 
 
 p_print_table([],_).
@@ -283,3 +348,6 @@ rm_rule_two_args(Rule) :- rm_rule_no_args(Rule),
         G =.. [Rule,_,_],call(retractall(G)).
 
 get_table_columns(TableName, List) :- G =.. [TableName, List], call(G).
+
+column_set_value(ColumnName, TableID, Value) :-
+        G =.. [ColumnName, TableID, Value],call(assertz(G)).
