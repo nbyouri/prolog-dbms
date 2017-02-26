@@ -99,13 +99,13 @@ ncli_co("30185","F011").
 ncli_co("30186","C400").
 ncli_co("30188","B512").
 
-co_date("30178","2008-12-22").
-co_date("30179","2008-12-22").
-co_date("30182","2008-12-23").
-co_date("30184","2008-12-23").
-co_date("30185","2009-01-02").
-co_date("30186","2009-01-02").
-co_date("30188","2009-01-02").
+date("30178","2008-12-22").
+date("30179","2008-12-22").
+date("30182","2008-12-23").
+date("30184","2008-12-23").
+date("30185","2009-01-02").
+date("30186","2009-01-02").
+date("30188","2009-01-02").
 
 % Detail table
 npro_de("30178","CS464").
@@ -163,11 +163,29 @@ qstock("PS222","1220").
 qstock("PA45","580").
 qstock("PH222","1220").
 
-
+% Table columnns
+client([nom, adresse, localite, cat, compte]).
 
 %%%
 % Rules
 %%%
+% Select columns from a table
+select(_,_).
+select(X, [H|T]) :-
+		    select_column(X, H),
+		    select(X, T).
+
+is_column_in_table(TableName, ColumnName) :- 
+			G =.. [TableName,L], call(G),member(ColumnName, L), !.
+
+column_as_list(ColumnName,L) :- G =.. [ColumnName], findall(Y, call(G,_,Y), L).
+
+select_column(TableName, ColumnName) :- is_column_in_table(TableName, ColumnName)
+					-> column_as_list(ColumnName, L),
+					   print_table(L)
+					; write("No such column in table "),
+				          write(TableName), nl.
+
 get_client(Ncli,Nom,Adresse,Localite,Cat,Compte) :- 
     nom(Ncli,Nom),
     adresse(Ncli,Adresse),
@@ -175,7 +193,28 @@ get_client(Ncli,Nom,Adresse,Localite,Cat,Compte) :-
     cat(Ncli,Cat),
     compte(Ncli,Compte).
 
+%% Create table
+add_columns(_,[]).
+add_columns(TableName, [H|T]) :- assertz(H), add_columns(TableName, T).
+
+create_table(TableName, Columns) :- assertz(TableName),
+                                    add_columns(TableName,Columns).
+
+%% Insert values into a table
+%insert(TableName, Key, Value) :- assertz(TableName(Key, Value)).
 
 
+p_print_table([],_).
+p_print_table([H|T], N) :- write(N), write(" -> "), write(H), nl,
+                            N1 is N+1, p_print_table(T, N1).
+print_table(X) :- p_print_table(X, 0).
 
-%print_table(A,B) :- write(A), nl, write(B), nl.
+
+%% Create a REPL to avoid unnecessary output?
+db_repl :-
+    repeat,
+    write('> '),
+    read(X),
+    call(X),
+    fail.
+
