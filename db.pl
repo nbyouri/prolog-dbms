@@ -242,6 +242,11 @@ commande([ncom_co, ncli_co, date]).
 detail([ncom_de, npro_de, qcom]).
 produit([npro, libelle, prix, qstock]).
 
+% Table index
+:- dynamic(table_index/1).
+
+table_index([client, commande, detail, produit]).
+
 %%%
 % Rules
 %%%
@@ -251,23 +256,20 @@ select(X, [H|T]) :-
         select_column(X, H),
         select(X, T).
 
+select_all(TableName) :- get_table_columns(TableName,L),
+        select(TableName,L).
+
 is_column_in_table(TableName, ColumnName) :- 
         get_table_columns(TableName,L),member(ColumnName, L), !.
 
 column_as_list(ColumnName,L) :- G =.. [ColumnName], findall(Y, call(G,_,Y), L).
 
-select_column(TableName, ColumnName) :- is_column_in_table(TableName, ColumnName)
+select_column(TableName, ColumnName) :-
+        is_column_in_table(TableName, ColumnName)
 	-> column_as_list(ColumnName, L),
         print_table(L)
         ; write("No such column in table "),
         write(TableName), nl.
-
-get_client(Ncli,Nom,Adresse,Localite,Cat,Compte) :- 
-        nom(Ncli,Nom),
-        adresse(Ncli,Adresse),
-        localite(Ncli,Localite),
-        cat(Ncli,Cat),
-        compte(Ncli,Compte).
 
 %% Create columns
 register_column_in_table(TableName, ColumnName) :-
@@ -279,7 +281,12 @@ create_columns(TableName, [H|T]) :- register_column_in_table(TableName, H),
         add_rule_two_args(H), create_columns(TableName, T).
 
 %% Create table
+register_table_in_index(TableName) :-
+        table_index(L), append(L, [TableName], NL),
+        rule_replace_list(table_index, NL).
+
 create_table(TableName, Columns) :- add_rule_empty_list(TableName),
+        register_table_in_index(TableName),
         create_columns(TableName,Columns).
 
 %% Drop a column
@@ -300,9 +307,17 @@ drop_columns(TableName, [H|T]) :- drop_column(TableName, H),
 
 
 %% Drop a table
+delete_table_from_index(TableName) :-
+        table_index(L), delete(L,TableName,NL),
+        rule_replace_list(table_index, NL).
+
 drop_table(TableName) :- get_table_columns(TableName, L),
         drop_columns(TableName, L),
-        rm_rule_one_arg(TableName).
+        rm_rule_one_arg(TableName),
+        delete_table_from_index(TableName).
+
+drop_tables([]).
+drop_tables([H|T]) :- drop_table(H), drop_tables(T).
 
 %% Drop a row matching predicate 
 % TODO
@@ -351,3 +366,8 @@ get_table_columns(TableName, List) :- G =.. [TableName, List], call(G).
 
 column_set_value(ColumnName, TableID, Value) :-
         G =.. [ColumnName, TableID, Value],call(assertz(G)).
+
+%%% Cleanup up the memory space and reload the file
+%% XXX literal
+cleanup :- table_index(L), drop_tables(L),
+        rm_rule_one_arg(table_index), consult("db.pl").
