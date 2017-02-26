@@ -253,8 +253,9 @@ table_index([client, commande, detail, produit]).
 % Select columns from a table
 select(_,_).
 select(X, [H|T]) :-
-        select_column(X, H),
-        select(X, T).
+        is_column_in_table(X, H)
+        -> select_column(H), select(X,T)
+        ; write("No such column in table "), write(X).
 
 select_all(TableName) :- get_table_columns(TableName,L),
         select(TableName,L).
@@ -262,14 +263,11 @@ select_all(TableName) :- get_table_columns(TableName,L),
 is_column_in_table(TableName, ColumnName) :- 
         get_table_columns(TableName,L),member(ColumnName, L), !.
 
-column_as_list(ColumnName,L) :- G =.. [ColumnName], findall(Y, call(G,_,Y), L).
+column_as_list(ColumnName,R) :- G =.. [ColumnName,_,L], findall(L,call(G),R).
 
-select_column(TableName, ColumnName) :-
-        is_column_in_table(TableName, ColumnName)
-	-> column_as_list(ColumnName, L),
-        print_table(L)
-        ; write("No such column in table "),
-        write(TableName), nl.
+select_column(ColumnName) :-
+	column_as_list(ColumnName, L),
+        print_table(L).
 
 %% Create columns
 register_column_in_table(TableName, ColumnName) :-
@@ -332,10 +330,24 @@ insert(TableName, [ID|Values]) :- get_table_columns(TableName,ColumnNames),
         ; write("Arguments do not match the table "), write(TableName), nl.
 
 
+
+%% Combine two lists
+combine2([],[],_).
+combine2([H|T],[H1|T1],[H2|T2]) :- H2 = [H,H1],combine2(T,T1,T2).
+
+%combine([],[]).
+combine([H|[H1|T]],R) :- column_as_list(H,L1), column_as_list(H1,L2),
+        combine2(L1,L2,R).%, combine([H1|T],R).
+
+%% XXX manage more than two lists.
+testC :- combine([ncom_de,npro_de,qcom],R), print_table(R).
+
+%% Pretty print results as a table
 p_print_table([],_).
 p_print_table([H|T], N) :- write(N), write(" -> "), write(H), nl,
         N1 is N+1, p_print_table(T, N1).
-print_table(X) :- p_print_table(X, 0).
+print_table(X) :- length(X,L),
+        L > 0 -> p_print_table(X, 0); write("Empty set.").
 
 
 %% Utils
@@ -346,14 +358,15 @@ db_repl :-
         call(X),
         fail.
 
+%% Add predicates
 add_rule_empty_list(Rule) :- dynamic(Rule/1), G =.. [Rule,[]],call(assertz(G)).
 
-%%% XXX how to avoid _,_ -> true ?
-add_rule_two_args(Rule) :- dynamic(Rule/2), G =.. [Rule,_,_],call(assertz(G)).
+add_rule_two_args(Rule) :- dynamic(Rule/2), G =.. [Rule],call(assertz(G)).
 
 rule_replace_list(Rule,List) :- rm_rule_one_arg(Rule),
         dynamic(Rule/1), G =.. [Rule,List], call(assertz(G)).
 
+%% Remove predicates
 rm_rule_no_args(Rule) :- G =.. [Rule],call(retractall(G)).
 
 rm_rule_one_arg(Rule) :- rm_rule_no_args(Rule),
