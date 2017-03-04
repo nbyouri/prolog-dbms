@@ -252,7 +252,13 @@ table_index([client, commande, detail, produit]).
 %%%
 % Select columns from a table
 select(_,_).
-select(X, [H|T]) :-
+select(X,C) :-
+        table_index(L),member(X,L)
+        -> select_p(X,C)
+        ; write("No such table exists."),nl.
+
+select_p(_,_).
+select_p(X, [H|T]) :-
         is_column_in_table(X,H)
         -> select_column(X,H), select(X,T)
         ; write("No such column in table "), write(X).
@@ -282,7 +288,6 @@ create_columns(TableName,[H|T]) :-
         create_column(TableName,H),
         column_get_name(TableName,H,X),
         add_rule_two_args(X),
-        write(X),nl,
         create_columns(TableName, T).
 
 %% Create table
@@ -331,8 +336,8 @@ insert_row(TableName,ID,[H|T],[H2|T2]) :-
         column_set_value(TableName,H,ID,H2),
         insert_row(TableName,ID,T,T2).
 
-insert(TableName, [ID|Values]) :- get_table_columns(TableName,ColumnNames),
-        length(ColumnNames, L1), length([ID|Values], L2),
+insert(TableName,[ID|Values]) :- get_table_columns(TableName,ColumnNames),
+        length(ColumnNames,L1), length([ID|Values],L2),
         L1 = L2 -> insert_row(TableName,ID,ColumnNames,[ID|Values])
         ; write("Arguments do not match the table "), write(TableName), nl.
 
