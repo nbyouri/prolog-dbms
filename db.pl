@@ -4,7 +4,7 @@
 %					   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Clients table
+% client table
 :- dynamic(client_ncli/2).
 :- dynamic(client_nom/2).
 :- dynamic(client_adresse/2).
@@ -12,107 +12,107 @@
 :- dynamic(client_cat/2).
 :- dynamic(client_compte/2).
 
-clients_ncli("B062","B062").
-clients_ncli("B112","B112").
-clients_ncli("B332","B332").
-clients_ncli("B512","B512").
-clients_ncli("C003","C003").
-clients_ncli("C123","C123").
-clients_ncli("C400","C400").
-clients_ncli("D063","D063").
-clients_ncli("F010","F010").
-clients_ncli("F400","F400").
-clients_ncli("K111","K111").
-clients_ncli("L422","L422").
-clients_ncli("S127","S127").
-clients_ncli("S712","S712").
-clients_ncli("F011","F011").
-clients_ncli("K729","K729").
+client_ncli("B062","B062").
+client_ncli("B112","B112").
+client_ncli("B332","B332").
+client_ncli("B512","B512").
+client_ncli("C003","C003").
+client_ncli("C123","C123").
+client_ncli("C400","C400").
+client_ncli("D063","D063").
+client_ncli("F010","F010").
+client_ncli("F400","F400").
+client_ncli("K111","K111").
+client_ncli("L422","L422").
+client_ncli("S127","S127").
+client_ncli("S712","S712").
+client_ncli("F011","F011").
+client_ncli("K729","K729").
 
-clients_nom("B062","Goffin").
-clients_nom("B112","Hansenne").
-clients_nom("B332","Monti").
-clients_nom("B512","Gillet").
-clients_nom("C003","Avron").
-clients_nom("C123","MERCIER").
-clients_nom("C400","Ferard").
-clients_nom("D063","Mercier").
-clients_nom("F010","Toussaint").
-clients_nom("F400","Jacob").
-clients_nom("K111","Vanbist").
-clients_nom("L422","Franck").
-clients_nom("S127","Vanderka").
-clients_nom("S712","Guillaume").
-clients_nom("F011","PONCELET").
-clients_nom("K729","NEUMAN").
+client_nom("B062","Goffin").
+client_nom("B112","Hansenne").
+client_nom("B332","Monti").
+client_nom("B512","Gillet").
+client_nom("C003","Avron").
+client_nom("C123","MERCIER").
+client_nom("C400","Ferard").
+client_nom("D063","Mercier").
+client_nom("F010","Toussaint").
+client_nom("F400","Jacob").
+client_nom("K111","Vanbist").
+client_nom("L422","Franck").
+client_nom("S127","Vanderka").
+client_nom("S712","Guillaume").
+client_nom("F011","PONCELET").
+client_nom("K729","NEUMAN").
 
-clients_adresse("B062", "72, rue de la Gare").
-clients_adresse("B112", "23, rue Dumont").
-clients_adresse("B332", "112, rue Neuve").
-clients_adresse("B512", "14, rue de l'Eté").
-clients_adresse("C003", "8, rue de la Cure").
-clients_adresse("C123", "25, rue Lemaitre").
-clients_adresse("C400", "65, rue du Tertre").
-clients_adresse("D063", "201, boulevard du Nord").
-clients_adresse("F010", "5, rue Godefroid").
-clients_adresse("F400", "78, chemin du Moulin").
-clients_adresse("K111", "180, rue Florimont").
-clients_adresse("L422", "60, rue de Wépion").
-clients_adresse("S127", "3, avenue des Roses").
-clients_adresse("S712", "14a, chemin des Roses").
-clients_adresse("F011", "17, Clos des Erables").
-clients_adresse("K729", "40, rue Bransart").
+client_adresse("B062", "72, rue de la Gare").
+client_adresse("B112", "23, rue Dumont").
+client_adresse("B332", "112, rue Neuve").
+client_adresse("B512", "14, rue de l'Eté").
+client_adresse("C003", "8, rue de la Cure").
+client_adresse("C123", "25, rue Lemaitre").
+client_adresse("C400", "65, rue du Tertre").
+client_adresse("D063", "201, boulevard du Nord").
+client_adresse("F010", "5, rue Godefroid").
+client_adresse("F400", "78, chemin du Moulin").
+client_adresse("K111", "180, rue Florimont").
+client_adresse("L422", "60, rue de Wépion").
+client_adresse("S127", "3, avenue des Roses").
+client_adresse("S712", "14a, chemin des Roses").
+client_adresse("F011", "17, Clos des Erables").
+client_adresse("K729", "40, rue Bransart").
 
-clients_localite("B062","Namur").
-clients_localite("B112","Poitiers").
-clients_localite("B332","Genève").
-clients_localite("B512","Toulouse").
-clients_localite("C003","Toulouse").
-clients_localite("C123","Namur").
-clients_localite("C400","Poitiers").
-clients_localite("D063","Toulouse").
-clients_localite("F010","Poitiers").
-clients_localite("F400","Bruxelles").
-clients_localite("K111","Lille").
-clients_localite("L422","Namur").
-clients_localite("S127","Namur").
-clients_localite("S712","Paris").
-clients_localite("F011","Toulouse").
-clients_localite("K729","Toulouse").
+client_localite("B062","Namur").
+client_localite("B112","Poitiers").
+client_localite("B332","Genève").
+client_localite("B512","Toulouse").
+client_localite("C003","Toulouse").
+client_localite("C123","Namur").
+client_localite("C400","Poitiers").
+client_localite("D063","Toulouse").
+client_localite("F010","Poitiers").
+client_localite("F400","Bruxelles").
+client_localite("K111","Lille").
+client_localite("L422","Namur").
+client_localite("S127","Namur").
+client_localite("S712","Paris").
+client_localite("F011","Toulouse").
+client_localite("K729","Toulouse").
 
-clients_cat("B062","B2").
-clients_cat("B112","C1").
-clients_cat("B332","B2").
-clients_cat("B512","B1").
-clients_cat("C003","B1").
-clients_cat("C123","C1").
-clients_cat("C400","B2").
-clients_cat("D063","B2").
-clients_cat("F010","C1").
-clients_cat("F400","C2").
-clients_cat("K111","B1").
-clients_cat("L422","C1").
-clients_cat("S127","C1").
-clients_cat("S712","B1").
-clients_cat("F011","B2").
-clients_cat("K729","B2").
+client_cat("B062","B2").
+client_cat("B112","C1").
+client_cat("B332","B2").
+client_cat("B512","B1").
+client_cat("C003","B1").
+client_cat("C123","C1").
+client_cat("C400","B2").
+client_cat("D063","B2").
+client_cat("F010","C1").
+client_cat("F400","C2").
+client_cat("K111","B1").
+client_cat("L422","C1").
+client_cat("S127","C1").
+client_cat("S712","B1").
+client_cat("F011","B2").
+client_cat("K729","B2").
 
-clients_compte("B062","-3200").
-clients_compte("B112","1250").
-clients_compte("B332","0").
-clients_compte("B512","-8700").
-clients_compte("C003","-1700").
-clients_compte("C123","-2300").
-clients_compte("C400","350").
-clients_compte("D063","-2250").
-clients_compte("F010","0").
-clients_compte("F400","0").
-clients_compte("K111","720").
-clients_compte("L422","0").
-clients_compte("S127","-4580").
-clients_compte("S712","0").
-clients_compte("F011","0").
-clients_compte("K729","0").
+client_compte("B062","-3200").
+client_compte("B112","1250").
+client_compte("B332","0").
+client_compte("B512","-8700").
+client_compte("C003","-1700").
+client_compte("C123","-2300").
+client_compte("C400","350").
+client_compte("D063","-2250").
+client_compte("F010","0").
+client_compte("F400","0").
+client_compte("K111","720").
+client_compte("L422","0").
+client_compte("S127","-4580").
+client_compte("S712","0").
+client_compte("F011","0").
+client_compte("K729","0").
 
 % Commande table
 :- dynamic(commande_ncom_co/2).
@@ -327,9 +327,6 @@ drop_table(TableName) :- get_table_columns(TableName, L),
 drop_tables([]).
 drop_tables([H|T]) :- drop_table(H), drop_tables(T).
 
-%% Drop a row matching predicate 
-% TODO
-
 %% Insert values into a table
 insert_row(_,_,_,[]).
 insert_row(TableName,ID,[H|T],[H2|T2]) :-
@@ -341,7 +338,24 @@ insert(TableName,[ID|Values]) :- get_table_columns(TableName,ColumnNames),
         L1 = L2 -> insert_row(TableName,ID,ColumnNames,[ID|Values])
         ; write("Arguments do not match the table "), write(TableName), nl.
 
+%% Where, list filtering for select,update and delete
+%include,exclude,maplist
 
+%% Check if a string contains only a number
+is_number_p([]).
+is_number_p([H|T]) :- char_type(H,digit), is_number_p(T).
+
+is_number(S) :- atom_chars(S,X), length(X,L), L>0, is_number_p(X).
+
+%% Filter a list based on a predicate
+filter(TableName,ColumnName,Op,Val,L) :-
+	is_number(Val) ->
+	column_as_list(TableName,ColumnName,ICN),
+	G =.. [Op,Y,Val],
+	findall(Y,(member(X,ICN),atom_number(X,Y), G),L)
+	; column_as_list(TableName,ColumnName,ICN),
+ 	G =.. [Op,X,Val],
+	findall(X,(member(X,ICN), G),L).
 
 %% Combine two lists
 %%% handle null case XXX 
@@ -355,7 +369,7 @@ insert(TableName,[ID|Values]) :- get_table_columns(TableName,ColumnNames),
 
 %% Pretty print results as a table
 p_print_table([],_).
-p_print_table([H|T], N) :- write(N), write(" -> "), write(H), nl,
+p_print_table([H|T],N) :- write(N), write(" -> "), write(H), nl,
         N1 is N+1, p_print_table(T, N1).
 print_table(X) :- length(X,L),
         L > 0 -> p_print_table(X, 0); write("Empty set.").
