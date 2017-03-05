@@ -257,11 +257,16 @@ select(X,C) :-
         -> select_p(X,C)
         ; write("No such table exists."),nl.
 
-select_p(_,_).
-select_p(X, [H|T]) :-
-        is_column_in_table(X,H)
-        -> select_column(X,H), select(X,T)
+select_pp(_,[],TL,L) :- L = TL.
+select_pp(X,[H|T],TL,L) :- 
+	is_column_in_table(X,H)
+	-> column_as_list(X,H,CL),
+	append(TL,[CL],TL1),
+	select_pp(X,T,TL1,L)
         ; write("No such column in table "), write(X).
+
+select_p(X,C) :-
+	select_pp(X,C,[],L), combine_lists(L,R), print_list(R).
 
 select_all(TableName) :- get_table_columns(TableName,L),
         select(TableName,L).
@@ -373,6 +378,18 @@ combine_lists_p(L,I,LE,CR,R) :- I=LE -> R = CR
 combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) -> 
         combine_lists_p([H|T],0,LE,[],R)
         ; write("Can't combine assymetric lists"), nl.
+
+%% Format list contents as a pretty row
+build_list_format(N,C,T,F) :- N = 0 -> F = T
+	; C1 is C+12, N1 is N-1, 
+	string_concat("~s~t~",C1,Str1),
+	string_concat(Str1,"+",Str2),
+	string_concat(T,Str2,T1), build_list_format(N1,C1,T1,F).
+
+print_list([H|T]) :- length(H,LE),
+	build_list_format(LE,0,'',F),
+	string_concat(F,"~n",F1),
+	forall(member(L,[H|T]),format(F1,L)).
 
 %% Pretty print results as a table
 p_print_table([],_).
