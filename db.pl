@@ -276,11 +276,11 @@ is_column_in_table(TableName,ColumnName) :-
 
 column_as_list(TableName,ColumnName,R) :-
         column_get_name(TableName,ColumnName,X),
-        G =.. [X,_,L], findall(L,call(G),R).
+        G =.. [X,_,L], findall(L,G,R).
 
-select_column(TableName,ColumnName) :-
-	column_as_list(TableName,ColumnName,L),
-        print_table(L).
+column_as_list(TableName,ColumnName,ID,R) :-
+        column_get_name(TableName,ColumnName,X),
+        G =.. [X,ID,L], findall(L,G,R).
 
 %% Create columns
 create_column(TableName,ColumnName) :-
@@ -351,6 +351,7 @@ is_number_p([H|T]) :- char_type(H,digit), is_number_p(T).
 is_number(S) :- atom_chars(S,X), length(X,L), L>0, is_number_p(X).
 
 %% Filter a list based on a predicate
+%% XXX return ID
 filter(TableName,ColumnName,Op,Val,L) :-
 	is_number(Val) ->
 	column_as_list(TableName,ColumnName,ICN),
@@ -360,6 +361,33 @@ filter(TableName,ColumnName,Op,Val,L) :-
  	G =.. [Op,X,Val],
 	findall(X,(member(X,ICN), G),L).
 
+%% Get column ID matching value
+%% XXX add filter capabilities
+where_id(TableName,ColumnName,Val,L) :-
+	column_get_name(TableName,ColumnName,X),
+	G =.. [X,Y,Val],
+	findall(Y,G,L).
+
+%% XXX: MOVE
+%% Select in table based on ID
+select_columns_id(_,[],_,CL,L) :- L = CL.
+select_columns_id(TableName,[H|T],ID,CL,L) :-
+	column_as_list(TableName,H,ID,CL1),
+	append(CL,CL1,CL2),
+	select_columns_id(TableName,T,ID,CL2,L).
+
+select_id(_,_,[],CL,L) :- L = CL.
+select_id(TableName,ColumnNames,[H|T],CL,L) :-
+	select_columns_id(TableName,ColumnNames,H,[],CL1),
+	append(CL,[CL1],CL2),
+	select_id(TableName,ColumnNames,T,CL2,L).
+
+select_id(T,C,I,L) :- select_id(T,C,I,[],L),!.
+
+select_where(TableName,ColumnNames,
+%%% XXX MOVE ^
+	
+	
 %% Verify all lists have the same size
 list_symmetric([],_).
 list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE -> list_symmetric(T,LE1)
@@ -380,16 +408,18 @@ combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) ->
         ; write("Can't combine assymetric lists"), nl.
 
 %% Format list contents as a pretty row
-build_list_format(N,C,T,F) :- N = 0 -> F = T
-	; C1 is C+12, N1 is N-1, 
-	string_concat("~s~t~",C1,Str1),
-	string_concat(Str1,"+",Str2),
-	string_concat(T,Str2,T1), build_list_format(N1,C1,T1,F).
+%build_list_format(N,C,T,F) :- N = 0 -> F = T
+%	; C1 is C+5, N1 is N-1, 
+%	string_concat("~s~t~",C1,Str1),
+%	string_concat(Str1,"+",Str2),
+%	string_concat(T,Str2,T1), build_list_format(N1,C1,T1,F).
 
-print_list([H|T]) :- length(H,LE),
-	build_list_format(LE,0,'',F),
-	string_concat(F,"~n",F1),
-	forall(member(L,[H|T]),format(F1,L)).
+print_list([H|T]) :- %length(H,LE),
+	%%% couldn't properly format() %%%
+	%build_list_format(LE,0,'',F),
+	%string_concat(F,"~n",F1),
+	%forall(member(L,[H|T]),format(F1,L)).
+	forall(member(L,[H|T]),(write(L),nl)).
 
 %% Pretty print results as a table
 p_print_table([],_).
@@ -446,8 +476,7 @@ column_get_name(TableName,X,ColumnName) :-
 
 column_set_value(TableName,ColumnName,TableID,Value) :-
         column_get_name(TableName,ColumnName,X),
-        column_get_name(TableName,TableID,TID),
-        G =.. [X,TID,Value],call(assertz(G)).
+        G =.. [X,TableID,Value],call(assertz(G)).
 
 %%% Cleanup up the memory space and reload the file
 %% XXX literal
