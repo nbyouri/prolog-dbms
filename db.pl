@@ -312,8 +312,6 @@ drop_columns(_,[]).
 drop_columns(TableName, [H|T]) :- drop_column(TableName, H),
         drop_columns(TableName, T).
         
-
-
 %% Drop a table
 delete_table_from_index(TableName) :-
         table_index(L), delete(L,TableName,NL),
@@ -357,15 +355,24 @@ filter(TableName,ColumnName,Op,Val,L) :-
  	G =.. [Op,X,Val],
 	findall(X,(member(X,ICN), G),L).
 
-%% Combine two lists
-%%% handle null case XXX 
-%combine2([],[],L) :- write(L),nl.
-%combine2([H|T],[H1|T1],L) :- append([H],[H1],L1),combine2(T,T1,L1).
-%
-%combine([],_).
-%combine([H|T],R) :- %column_as_list(H,L1), column_as_list(H1,L2),
-%        combine2(H,L2,R1), combine([H1|T],R1).
+%% Verify all lists have the same size
+list_symmetric([],_).
+list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE -> list_symmetric(T,LE1)
+        ; false.
 
+%% Get nth element of each list in list of lists
+lists_nth([],_,CL,R) :- R=CL.
+lists_nth([H|T],I,CL,R) :- nth0(I,H,X), append(CL,[X],CL1),
+	lists_nth(T,I,CL1,R).
+
+%% Combine a list of n lists of n elements
+combine_lists_p(L,I,LE,CR,R) :- I=LE -> R = CR
+        ; lists_nth(L,I,[],L1), append(CR,[L1],CR1),
+        I1 is I+1, combine_lists_p(L,I1,LE,CR1,R).
+
+combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) -> 
+        combine_lists_p([H|T],0,LE,[],R)
+        ; write("Can't combine assymetric lists"), nl.
 
 %% Pretty print results as a table
 p_print_table([],_).
