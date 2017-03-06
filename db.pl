@@ -259,17 +259,13 @@ select(X,C) :-
 
 select_pp(_,[],TL,L) :- L = TL.
 select_pp(X,[H|T],TL,L) :- 
-	is_column_in_table(X,H)
-	-> column_as_list(X,H,CL),
+	column_as_list(X,H,CL),
 	append(TL,[CL],TL1),
-	select_pp(X,T,TL1,L)
-        ; write("No such column in table "), write(X).
+	select_pp(X,T,TL1,L).
 
 select_p(X,C) :-
-	select_pp(X,C,[],L), combine_lists(L,R), print_list(R).
-
-select_all(Table) :- get_table_columns(Table,L),
-        select(Table,L).
+	validate_columns(X,C,[],C1),
+	select_pp(X,C1,[],L), combine_lists(L,R), print_list(R).
 
 is_column_in_table(Table,Column) :- 
         get_table_columns(Table,L),member(Column, L), !.
@@ -405,19 +401,24 @@ select_id(Table,Columns,[H|T],CL,L) :-
 
 select_id(T,C,I,L) :- select_id(T,C,I,[],L),!.
 
+%% XXX verify WhereColumn is in list
+%% XXX do it for select
+%% XXX remove select_all
 select_where(Table,Columns,WhereColumn,Op,Val) :-
+	validate_columns(Table,Columns,[],C),
 	filter(Table,WhereColumn,Op,Val,L),
 	where_id(Table,WhereColumn,L,L2),
-	select_id(Table,Columns,L2,L3),
+	select_id(Table,C,L2,L3),
 	print_list(L3).
 
 select_where_not(Table,Columns,WhereColumn,Op,Val) :-
-	select_pp(Table,Columns,[],List),
+	validate_columns(Table,Columns,[],C),
+	select_pp(Table,C,[],List),
 	combine_lists(List,List2),
 
 	filter(Table,WhereColumn,Op,Val,L),
 	where_id(Table,WhereColumn,L,L2),
-	select_id(Table,Columns,L2,L3),
+	select_id(Table,C,L2,L3),
 
 	remove_list(List2,L3,L4),
 	print_list(L4).
@@ -512,6 +513,18 @@ column_get_name(Table,X,Column) :-
 column_set_value(Table,Column,TableID,Value) :-
         column_get_name(Table,Column,X),
         G =.. [X,TableID,Value],call(assertz(G)).
+
+%% Validate columns
+%$ * -> all columns
+validate_columns(Table,A,_,Columns) :-
+	A = '*', get_table_columns(Table,Columns).
+
+validate_columns(_,[],C,Columns) :- Columns = C.
+validate_columns(Table,[H|T],C,Columns) :- is_column_in_table(Table,H)
+	-> append(C,[H],C1),
+	validate_columns(Table,T,C1,Columns)
+	; write("No such column "),write(H),
+	write(" in table "),write(Table),nl,fail.
 
 %%% Cleanup up the memory space and reload the file
 %% XXX literal
