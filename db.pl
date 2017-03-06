@@ -268,78 +268,78 @@ select_pp(X,[H|T],TL,L) :-
 select_p(X,C) :-
 	select_pp(X,C,[],L), combine_lists(L,R), print_list(R).
 
-select_all(TableName) :- get_table_columns(TableName,L),
-        select(TableName,L).
+select_all(Table) :- get_table_columns(Table,L),
+        select(Table,L).
 
-is_column_in_table(TableName,ColumnName) :- 
-        get_table_columns(TableName,L),member(ColumnName, L), !.
+is_column_in_table(Table,Column) :- 
+        get_table_columns(Table,L),member(Column, L), !.
 
-column_as_list(TableName,ColumnName,R) :-
-        column_get_name(TableName,ColumnName,X),
+column_as_list(Table,Column,R) :-
+        column_get_name(Table,Column,X),
         G =.. [X,_,L], findall(L,G,R).
 
-column_as_list(TableName,ColumnName,ID,R) :-
-        column_get_name(TableName,ColumnName,X),
+column_as_list(Table,Column,ID,R) :-
+        column_get_name(Table,Column,X),
         G =.. [X,ID,L], findall(L,G,R).
 
 %% Create columns
-create_column(TableName,ColumnName) :-
-        get_table_columns(TableName,L),
-        append(L,[ColumnName],NL),
-        rule_replace_list(TableName,NL).
+create_column(Table,Column) :-
+        get_table_columns(Table,L),
+        append(L,[Column],NL),
+        rule_replace_list(Table,NL).
 
 create_columns(_,[]).
-create_columns(TableName,[H|T]) :-
-        create_column(TableName,H),
-        column_get_name(TableName,H,X),
+create_columns(Table,[H|T]) :-
+        create_column(Table,H),
+        column_get_name(Table,H,X),
         add_rule_two_args(X),
-        create_columns(TableName, T).
+        create_columns(Table, T).
 
 %% Create table
-register_table_in_index(TableName) :-
-        table_index(L), append(L, [TableName], NL),
+register_table_in_index(Table) :-
+        table_index(L), append(L, [Table], NL),
         rule_replace_list(table_index, NL).
 
-create_table(TableName, Columns) :- add_rule_empty_list(TableName),
-        register_table_in_index(TableName),
-        create_columns(TableName,Columns).
+create_table(Table, Columns) :- add_rule_empty_list(Table),
+        register_table_in_index(Table),
+        create_columns(Table,Columns).
 
 %% Drop a column
-drop_column(TableName,X) :-
-        column_get_name(TableName,X,ColumnName),
-	is_column_in_table(TableName, X) ->
-        get_table_columns(TableName,L), delete(L,X,NL),
-        rule_replace_list(TableName,NL),
-	rm_rule_two_args(ColumnName)
-        ; write("No such column in table "), write(TableName), nl.
+drop_column(Table,X) :-
+        column_get_name(Table,X,Column),
+	is_column_in_table(Table, X) ->
+        get_table_columns(Table,L), delete(L,X,NL),
+        rule_replace_list(Table,NL),
+	rm_rule_two_args(Column)
+        ; write("No such column in table "), write(Table), nl.
 
 drop_columns(_,[]).
-drop_columns(TableName, [H|T]) :- drop_column(TableName, H),
-        drop_columns(TableName, T).
+drop_columns(Table, [H|T]) :- drop_column(Table, H),
+        drop_columns(Table, T).
         
 %% Drop a table
-delete_table_from_index(TableName) :-
-        table_index(L), delete(L,TableName,NL),
+delete_table_from_index(Table) :-
+        table_index(L), delete(L,Table,NL),
         rule_replace_list(table_index, NL).
 
-drop_table(TableName) :- get_table_columns(TableName, L),
-        drop_columns(TableName, L),
-        rm_rule_one_arg(TableName),
-        delete_table_from_index(TableName).
+drop_table(Table) :- get_table_columns(Table, L),
+        drop_columns(Table, L),
+        rm_rule_one_arg(Table),
+        delete_table_from_index(Table).
 
 drop_tables([]).
 drop_tables([H|T]) :- drop_table(H), drop_tables(T).
 
 %% Insert values into a table
 insert_row(_,_,_,[]).
-insert_row(TableName,ID,[H|T],[H2|T2]) :-
-        column_set_value(TableName,H,ID,H2),
-        insert_row(TableName,ID,T,T2).
+insert_row(Table,ID,[H|T],[H2|T2]) :-
+        column_set_value(Table,H,ID,H2),
+        insert_row(Table,ID,T,T2).
 
-insert(TableName,[ID|Values]) :- get_table_columns(TableName,ColumnNames),
-        length(ColumnNames,L1), length([ID|Values],L2),
-        L1 = L2 -> insert_row(TableName,ID,ColumnNames,[ID|Values])
-        ; write("Arguments do not match the table "), write(TableName), nl.
+insert(Table,[ID|Values]) :- get_table_columns(Table,Columns),
+        length(Columns,L1), length([ID|Values],L2),
+        L1 = L2 -> insert_row(Table,ID,Columns,[ID|Values])
+        ; write("Arguments do not match the table "), write(Table), nl.
 
 %% Where, list filtering for select,update and delete
 %include,exclude,maplist
@@ -360,49 +360,48 @@ remove_duplicates([H|T],Out,Seen) :-
 remove_duplicates(L1,L2) :- remove_duplicates(L1, L2, []).
 
 %% Remove sub-lists from a lsit
-remove_list([], _, []).
-remove_list([X|Tail], L2, Result) :-
-	member(X, L2), !, remove_list(Tail, L2, Result). 
-remove_list([X|Tail], L2, [X|Result]) :-
-	remove_list(Tail, L2, Result).
+remove_list([],_,[]).
+remove_list([H|T],L,R) :-
+	member(H, L), !, remove_list(T, L, R). 
+remove_list([H|T],L,[H|R]) :-
+	remove_list(T,L,R).
 
 
-filter(TableName,ColumnName,Op,Val,L) :-
+filter(Table,Column,Op,Val,L) :-
 	is_number(Val) ->
-	column_as_list(TableName,ColumnName,ICN),
+	column_as_list(Table,Column,ICN),
 	G =.. [Op,Y,Val],
 	findall(Y,(member(X,ICN),atom_number(X,Y), G),L1),
 	remove_duplicates(L1,L)
-	; column_as_list(TableName,ColumnName,ICN),
+	; column_as_list(Table,Column,ICN),
  	G =.. [Op,X,Val],
 	findall(X,(member(X,ICN), G),L1),
 	remove_duplicates(L1,L).
 
 %% Get column ID matching values
-%% XXX add filter capabilities
 where_id(_,_,[],CL,L) :- L = CL.
-where_id(TableName,ColumnName,[H|T],CL,L) :-
-	column_get_name(TableName,ColumnName,X),
+where_id(Table,Column,[H|T],CL,L) :-
+	column_get_name(Table,Column,X),
 	atom_string(H,S),
 	G =.. [X,Y,S],
 	findall(Y,G,CL1),
 	append(CL,CL1,CL2),
-	where_id(TableName,ColumnName,T,CL2,L).
+	where_id(Table,Column,T,CL2,L).
 where_id(T,C,I,L) :- where_id(T,C,I,[],L).
 
 %% XXX: MOVE
 %% Select in table based on ID
 select_columns_id(_,[],_,CL,L) :- L = CL.
-select_columns_id(TableName,[H|T],ID,CL,L) :-
-	column_as_list(TableName,H,ID,CL1),
+select_columns_id(Table,[H|T],ID,CL,L) :-
+	column_as_list(Table,H,ID,CL1),
 	append(CL,CL1,CL2),
-	select_columns_id(TableName,T,ID,CL2,L).
+	select_columns_id(Table,T,ID,CL2,L).
 
 select_id(_,_,[],CL,L) :- L = CL.
-select_id(TableName,ColumnNames,[H|T],CL,L) :-
-	select_columns_id(TableName,ColumnNames,H,[],CL1),
+select_id(Table,Columns,[H|T],CL,L) :-
+	select_columns_id(Table,Columns,H,[],CL1),
 	append(CL,[CL1],CL2),
-	select_id(TableName,ColumnNames,T,CL2,L).
+	select_id(Table,Columns,T,CL2,L).
 
 select_id(T,C,I,L) :- select_id(T,C,I,[],L),!.
 
@@ -423,12 +422,6 @@ select_where_not(Table,Columns,WhereColumn,Op,Val) :-
 	remove_list(List2,L3,L4),
 	print_list(L4).
 
-%select_where(TableName,ColumnNames,
-%%% XXX MOVE ^
-	
-% current "select * from produit where qstock > 1000"
-%	select_where(produit,[npro,libelle,prix,qstock],qstock,>,1000).
-	
 %% Verify all lists have the same size
 list_symmetric([],_).
 list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE -> list_symmetric(T,LE1)
@@ -509,15 +502,15 @@ list_prepend_items(L,P,R) :- p_list_prepend_items(L,P,[],R).
 
 
 %% Get a table's columns and an internal column name, allowing namespaces.
-get_table_columns(TableName,Columns) :- G =.. [TableName, Columns], call(G).
+get_table_columns(Table,Columns) :- G =.. [Table, Columns], call(G).
 
-column_get_name(TableName,X,ColumnName) :- 
-        string_concat(TableName,"_",TmpStr1),
+column_get_name(Table,X,Column) :- 
+        string_concat(Table,"_",TmpStr1),
         string_concat(TmpStr1,X,TmpStr2),
-        atom_string(ColumnName,TmpStr2).
+        atom_string(Column,TmpStr2).
 
-column_set_value(TableName,ColumnName,TableID,Value) :-
-        column_get_name(TableName,ColumnName,X),
+column_set_value(Table,Column,TableID,Value) :-
+        column_get_name(Table,Column,X),
         G =.. [X,TableID,Value],call(assertz(G)).
 
 %%% Cleanup up the memory space and reload the file
