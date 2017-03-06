@@ -422,6 +422,27 @@ select_where_not(Table,Columns,WhereColumn,Op,Val) :-
 	remove_list(List2,L3,L4),
 	print_list(L4).
 
+%% Delete row from table
+delete_column_row(_,[],_).
+delete_column_row(Table,[H|T],ID) :-
+	column_get_name(Table,H,C),
+	atom_string(ID,SID),
+	G =.. [C,SID,_],
+	retract(G),
+	delete_column_row(Table,T,ID).
+	
+delete_id(_,[]).
+delete_id(Table,[H|T],C) :-
+	delete_column_row(Table,C,H),
+	delete_id(Table,T,C).
+
+delete_where(Table,Column,Op,Val) :-
+	validate_columns(Table,[Column],[],[WC|_]),
+	validate_columns(Table,*,[],C),
+	filter(Table,WC,Op,Val,L),
+	where_id(Table,WC,L,L2),
+	delete_id(Table,L2,C).
+	
 %% Verify all lists have the same size
 list_symmetric([],_).
 list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE -> list_symmetric(T,LE1)
