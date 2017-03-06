@@ -351,22 +351,44 @@ is_number_p([H|T]) :- char_type(H,digit), is_number_p(T).
 is_number(S) :- atom_chars(S,X), length(X,L), L>0, is_number_p(X).
 
 %% Filter a list based on a predicate
-%% XXX return ID
+%% Remove duplicates from list
+remove_duplicates([],[],_).
+remove_duplicates([H|T],[H|Out],Seen) :-
+	not(member(H,Seen)), remove_duplicates(T,Out, [H|Seen]).
+remove_duplicates([H|T],Out,Seen) :-
+	member(H,Seen), remove_duplicates(T,Out,Seen).
+remove_duplicates(L1,L2) :- remove_duplicates(L1, L2, []).
+
+%% Remove sub-lists from a lsit
+remove_list([], _, []).
+remove_list([X|Tail], L2, Result) :-
+	member(X, L2), !, remove_list(Tail, L2, Result). 
+remove_list([X|Tail], L2, [X|Result]) :-
+	remove_list(Tail, L2, Result).
+
+
 filter(TableName,ColumnName,Op,Val,L) :-
 	is_number(Val) ->
 	column_as_list(TableName,ColumnName,ICN),
 	G =.. [Op,Y,Val],
-	findall(Y,(member(X,ICN),atom_number(X,Y), G),L)
+	findall(Y,(member(X,ICN),atom_number(X,Y), G),L1),
+	remove_duplicates(L1,L)
 	; column_as_list(TableName,ColumnName,ICN),
  	G =.. [Op,X,Val],
-	findall(X,(member(X,ICN), G),L).
+	findall(X,(member(X,ICN), G),L1),
+	remove_duplicates(L1,L).
 
-%% Get column ID matching value
+%% Get column ID matching values
 %% XXX add filter capabilities
-where_id(TableName,ColumnName,Val,L) :-
+where_id(_,_,[],CL,L) :- L = CL.
+where_id(TableName,ColumnName,[H|T],CL,L) :-
 	column_get_name(TableName,ColumnName,X),
-	G =.. [X,Y,Val],
-	findall(Y,G,L).
+	atom_string(H,S),
+	G =.. [X,Y,S],
+	findall(Y,G,CL1),
+	append(CL,CL1,CL2),
+	where_id(TableName,ColumnName,T,CL2,L).
+where_id(T,C,I,L) :- where_id(T,C,I,[],L).
 
 %% XXX: MOVE
 %% Select in table based on ID
@@ -384,9 +406,28 @@ select_id(TableName,ColumnNames,[H|T],CL,L) :-
 
 select_id(T,C,I,L) :- select_id(T,C,I,[],L),!.
 
-select_where(TableName,ColumnNames,
+select_where(Table,Columns,WhereColumn,Op,Val) :-
+	filter(Table,WhereColumn,Op,Val,L),
+	where_id(Table,WhereColumn,L,L2),
+	select_id(Table,Columns,L2,L3),
+	print_list(L3).
+
+select_where_not(Table,Columns,WhereColumn,Op,Val) :-
+	select_pp(Table,Columns,[],List),
+	combine_lists(List,List2),
+
+	filter(Table,WhereColumn,Op,Val,L),
+	where_id(Table,WhereColumn,L,L2),
+	select_id(Table,Columns,L2,L3),
+
+	remove_list(List2,L3,L4),
+	print_list(L4).
+
+%select_where(TableName,ColumnNames,
 %%% XXX MOVE ^
 	
+% current "select * from produit where qstock > 1000"
+%	select_where(produit,[npro,libelle,prix,qstock],qstock,>,1000).
 	
 %% Verify all lists have the same size
 list_symmetric([],_).
@@ -414,6 +455,7 @@ combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) ->
 %	string_concat(Str1,"+",Str2),
 %	string_concat(T,Str2,T1), build_list_format(N1,C1,T1,F).
 
+print_list([]).
 print_list([H|T]) :- %length(H,LE),
 	%%% couldn't properly format() %%%
 	%build_list_format(LE,0,'',F),
