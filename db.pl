@@ -401,23 +401,22 @@ select_id(Table,Columns,[H|T],CL,L) :-
 
 select_id(T,C,I,L) :- select_id(T,C,I,[],L),!.
 
-%% XXX verify WhereColumn is in list
-%% XXX do it for select
-%% XXX remove select_all
 select_where(Table,Columns,WhereColumn,Op,Val) :-
+	validate_columns(Table,[WhereColumn],[],[WC|_]),
 	validate_columns(Table,Columns,[],C),
-	filter(Table,WhereColumn,Op,Val,L),
-	where_id(Table,WhereColumn,L,L2),
+	filter(Table,WC,Op,Val,L),
+	where_id(Table,WC,L,L2),
 	select_id(Table,C,L2,L3),
 	print_list(L3).
 
 select_where_not(Table,Columns,WhereColumn,Op,Val) :-
+	validate_columns(Table,[WhereColumn],[],[WC|_]),
 	validate_columns(Table,Columns,[],C),
 	select_pp(Table,C,[],List),
 	combine_lists(List,List2),
 
-	filter(Table,WhereColumn,Op,Val,L),
-	where_id(Table,WhereColumn,L,L2),
+	filter(Table,WC,Op,Val,L),
+	where_id(Table,WC,L,L2),
 	select_id(Table,C,L2,L3),
 
 	remove_list(List2,L3,L4),
@@ -440,7 +439,7 @@ combine_lists_p(L,I,LE,CR,R) :- I=LE -> R = CR
 
 combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) -> 
         combine_lists_p([H|T],0,LE,[],R)
-        ; write("Can't combine assymetric lists"), nl.
+        ; write("Can't combine assymetric lists"), nl,fail.
 
 %% Format list contents as a pretty row
 %build_list_format(N,C,T,F) :- N = 0 -> F = T
@@ -456,14 +455,6 @@ print_list([H|T]) :- %length(H,LE),
 	%string_concat(F,"~n",F1),
 	%forall(member(L,[H|T]),format(F1,L)).
 	forall(member(L,[H|T]),(write(L),nl)).
-
-%% Pretty print results as a table
-p_print_table([],_).
-p_print_table([H|T],N) :- write(N), write(" -> "), write(H), nl,
-        N1 is N+1, p_print_table(T, N1).
-print_table(X) :- length(X,L),
-        L > 0 -> p_print_table(X, 0); write("Empty set.").
-
 
 %% Utils
 db_repl :-
