@@ -329,8 +329,13 @@ drop_tables([H|T]) :- drop_table(H), drop_tables(T).
 %% Insert values into a table
 insert_row(_,_,_,[]).
 insert_row(Table,ID,[H|T],[H2|T2]) :-
-        column_set_value(Table,H,ID,H2),
+	atom_string(H,S),
+	atom_string(H2,S2),
+        column_set_value(Table,S,ID,S2),
         insert_row(Table,ID,T,T2).
+
+insert_rows(_,[]).
+insert_rows(Table,[H|T]) :- insert(Table,H), insert_rows(Table,T).
 
 insert(Table,[ID|Values]) :- get_table_columns(Table,Columns),
         length(Columns,L1), length([ID|Values],L2),
@@ -431,7 +436,7 @@ delete_column_row(Table,[H|T],ID) :-
 	retract(G),
 	delete_column_row(Table,T,ID).
 	
-delete_id(_,[]).
+delete_id(_,[],_).
 delete_id(Table,[H|T],C) :-
 	delete_column_row(Table,C,H),
 	delete_id(Table,T,C).
@@ -442,6 +447,41 @@ delete_where(Table,Column,Op,Val) :-
 	filter(Table,WC,Op,Val,L),
 	where_id(Table,WC,L,L2),
 	delete_id(Table,L2,C).
+
+%% Update row from table
+update_row(_,__,[],[]).
+update_row(Table,ID,[H|T],[H2|T2]) :-
+	atom_string(H2,S2),
+	atom_string(ID,SI),
+	column_get_name(Table,H,C),
+	G =.. [C,SI,_],
+	retract(G),
+        column_set_value(Table,H,SI,S2),
+        update_row(Table,ID,T,T2).
+
+update_rows(_,[],[],_,_).
+update_rows(Table,[OH|OT],[H|T],Cols,Vals) :-
+	insert(Table,OH),
+	update_row(Table,H,Cols,Vals),
+	update_rows(Table,OT,T,Cols,Vals).
+	
+update_where(Table,UpdateColumns,NewValues,WhereColumn,Op,Val) :-
+	% Validate
+	validate_columns(Table,UpdateColumns,[],UC),
+	validate_columns(Table,[WhereColumn],[],[WC|_]),
+	validate_columns(Table,*,[],AC),
+	list_symmetric([UpdateColumns,NewValues],_),
+
+	% Get matching rows
+	filter(Table,WC,Op,Val,L),
+	where_id(Table,WC,L,L1),
+
+	% First remove and insert back rows
+	select_id(Table,AC,L1,Orig),
+	delete_where(Table,WhereColumn,Op,Val),
+
+	% Update the appropriate columns
+	update_rows(Table,Orig,L1,UC,NewValues).
 	
 %% Verify all lists have the same size
 list_symmetric([],_).
