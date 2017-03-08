@@ -264,7 +264,7 @@ select(X,[H|T],TL,L) :-
 
 select(X,C,_) :-
 	validate_columns(X,C,[],C1),
-	select(X,C1,[],L), combine_lists(L,R), print_list(R), !.
+	select(X,C1,[],L), combine_lists(L,R), print_table(C1,R), !.
 
 is_column_in_table(Table,Column) :- 
         get_table_columns(Table,L),member(Column, L), !.
@@ -407,7 +407,7 @@ select_where(Table,Columns,WhereColumn,Op,Val) :-
 	filter(Table,WC,Op,Val,L),
 	where_id(Table,WC,L,L2),
 	select_id(Table,C,L2,L3),
-	print_list(L3),!.
+	print_table(C,L3),!.
 
 %% Inverse of select
 select_where_not(Table,Columns,WhereColumn,Op,Val) :-
@@ -421,7 +421,7 @@ select_where_not(Table,Columns,WhereColumn,Op,Val) :-
 	select_id(Table,C,L2,L3),
 
 	remove_list(List2,L3,L4),
-	print_list(L4),!.
+	print_table(C,L4),!.
 
 %% Delete row from table
 delete_column_row(_,[],_).
@@ -504,7 +504,7 @@ cross_join(Table1,Table2) :-
 
 	% cartesian product of the two tables
 	product(CPL,CCL,RL),
-	print_list(RL),!.
+	print_table([PC,CC],RL),!.
 	
 %% Get the index of an item in a list
 indexOf([E|_],E,0) :- !.
@@ -547,7 +547,7 @@ inner_join(Table1,Table2,Col1,Col2) :-
 
 	% Get matching rows and print them
 	findall(X,(member(X,RL),list_matches(X,I1,I2)),L),
-	print_list(L),!.
+	print_table([PC,CC],L),!.
 
 %% Verify all lists have the same size
 list_symmetric([],_).
@@ -578,6 +578,12 @@ print_list([H|T],LN) :-
 	print_list(T,LN2).
 
 print_list(L) :- print_list(L,0).
+
+print_header([]) :- nl.
+print_header([H|T]) :- format("~a|",H), print_header(T).
+
+print_table(C,L) :- format("~t~3||"),
+        flatten(C,FC), print_header(FC), print_list(L,0).
 
 %% REPL
 db_repl :-
