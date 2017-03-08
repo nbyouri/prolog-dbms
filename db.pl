@@ -254,18 +254,18 @@ table_index([client, commande, detail, produit]).
 select(_,_).
 select(X,C) :-
         table_index(L),member(X,L)
-        -> select_p(X,C)
+        -> select(X,C,_)
         ; write("No such table exists."),nl.
 
-select_pp(_,[],TL,L) :- L = TL.
-select_pp(X,[H|T],TL,L) :- 
+select(_,[],TL,L) :- L = TL.
+select(X,[H|T],TL,L) :- 
 	column_as_list(X,H,CL),
 	append(TL,[CL],TL1),
-	select_pp(X,T,TL1,L).
+	select(X,T,TL1,L).
 
-select_p(X,C) :-
+select(X,C,_) :-
 	validate_columns(X,C,[],C1),
-	select_pp(X,C1,[],L), combine_lists(L,R), print_list(R).
+	select(X,C1,[],L), combine_lists(L,R), print_list(R).
 
 is_column_in_table(Table,Column) :- 
         get_table_columns(Table,L),member(Column, L), !.
@@ -342,16 +342,12 @@ insert(Table,[ID|Values]) :- get_table_columns(Table,Columns),
         L1 = L2 -> insert_row(Table,ID,Columns,[ID|Values])
         ; write("Arguments do not match the table "), write(Table), nl.
 
-%% Where, list filtering for select,update and delete
-%include,exclude,maplist
-
 %% Check if a string contains only a number
-is_number_p([]).
-is_number_p([H|T]) :- char_type(H,digit), is_number_p(T).
+is_number([],_).
+is_number([H|T],_) :- char_type(H,digit), is_number(T,_).
 
-is_number(S) :- atom_chars(S,X), length(X,L), L>0, is_number_p(X).
+is_number(S) :- atom_chars(S,X), length(X,L), L>0, is_number(X,_).
 
-%% Filter a list based on a predicate
 %% Remove duplicates from list
 remove_duplicates([],[],_).
 remove_duplicates([H|T],[H|Out],Seen) :-
@@ -367,7 +363,7 @@ remove_list([H|T],L,R) :-
 remove_list([H|T],L,[H|R]) :-
 	remove_list(T,L,R).
 
-
+%% Filter a list based on a predicate
 filter(Table,Column,Op,Val,L) :-
 	is_number(Val) ->
 	column_as_list(Table,Column,ICN),
@@ -390,7 +386,6 @@ where_id(Table,Column,[H|T],CL,L) :-
 	where_id(Table,Column,T,CL2,L).
 where_id(T,C,I,L) :- where_id(T,C,I,[],L).
 
-%% XXX: MOVE
 %% Select in table based on ID
 select_columns_id(_,[],_,CL,L) :- L = CL.
 select_columns_id(Table,[H|T],ID,CL,L) :-
@@ -406,6 +401,7 @@ select_id(Table,Columns,[H|T],CL,L) :-
 
 select_id(T,C,I,L) :- select_id(T,C,I,[],L),!.
 
+%% Select rows based on a predicate
 select_where(Table,Columns,WhereColumn,Op,Val) :-
 	validate_columns(Table,[WhereColumn],[],[WC|_]),
 	validate_columns(Table,Columns,[],C),
@@ -414,10 +410,11 @@ select_where(Table,Columns,WhereColumn,Op,Val) :-
 	select_id(Table,C,L2,L3),
 	print_list(L3).
 
+%% Inverse of select
 select_where_not(Table,Columns,WhereColumn,Op,Val) :-
 	validate_columns(Table,[WhereColumn],[],[WC|_]),
 	validate_columns(Table,Columns,[],C),
-	select_pp(Table,C,[],List),
+	select(Table,C,[],List),
 	combine_lists(List,List2),
 
 	filter(Table,WC,Op,Val,L),
@@ -441,6 +438,7 @@ delete_id(Table,[H|T],C) :-
 	delete_column_row(Table,C,H),
 	delete_id(Table,T,C).
 
+%% Delete rows based a predicate
 delete_where(Table,Column,Op,Val) :-
 	validate_columns(Table,[Column],[],[WC|_]),
 	validate_columns(Table,*,[],C),
@@ -465,6 +463,7 @@ update_rows(Table,[OH|OT],[H|T],Cols,Vals) :-
 	update_row(Table,H,Cols,Vals),
 	update_rows(Table,OT,T,Cols,Vals).
 	
+%% Update rows based on a predicate
 update_where(Table,UpdateColumns,NewValues,WhereColumn,Op,Val) :-
 	% Validate
 	validate_columns(Table,UpdateColumns,[],UC),
@@ -483,28 +482,78 @@ update_where(Table,UpdateColumns,NewValues,WhereColumn,Op,Val) :-
 	% Update the appropriate columns
 	update_rows(Table,Orig,L1,UC,NewValues).
 
-%% Cross Join
-%% Print table resulting in cartesian product of two tables
+%% Cartesian product of two tables
 pairs(_,[],[]).
-pairs(A,[B|Bs],[[A,B]|Cs]) :- pairs(A,Bs,Cs).
+pairs(H,[H2|T2],[[H,H2]|L]) :- pairs(H,T2,L).
 
 product([],_,[]).
-product([A|As],Bs,Cs) :- pairs(A,Bs,Xs), product(As,Bs,Ys), append(Xs,Ys,Cs).
+product([H|T],T2,L) :- pairs(H,T2,X), product(T,T2,Y), append(X,Y,L).
 
-%% Test of a cross join between 
+%% Cross join of two tables
 cross_join(Table1,Table2) :-
+	% get table columns
 	validate_columns(Table1,*,[],PC),
 	validate_columns(Table2,*,[],CC),
-	select_pp(Table1,PC,[],PL),
-	select_pp(Table2,CC,[],CL),
+
+	% select columns into lists
+	select(Table1,PC,[],PL),
+	select(Table2,CC,[],CL),
+
+	% combine lists into tables
 	combine_lists(PL,CPL),
 	combine_lists(CL,CCL),
+
+	% cartesian product of the two tables
 	product(CPL,CCL,RL),
 	print_list(RL).
 	
+%% Get the index of an item in a list
+indexOf([E|_],E,0) :- !.
+indexOf([_|T],E,I) :-
+	indexOf(T,E,I1),
+	!,
+	I is I1+1.
+
+%% Check whether list1 at position i matches list2 at position j
+matches(L1,L2,I,J) :-
+	nth0(I,L1,V1),
+	nth0(J,L2,V2),
+	V1 = V2.
+
+%% Find matching columns in a list of two lists
+list_matches([H|[T|_]],I,J) :-
+	matches(H,T,I,J).
+
+inner_join(Table1,Table2,Col1,Col2) :-
+	% get table columns
+	validate_columns(Table1,*,[],PC),
+	validate_columns(Table2,*,[],CC),
+	validate_columns(Table1,[Col1],[],[ICol1|_]),
+	validate_columns(Table2,[Col2],[],[ICol2|_]),
+
+	% select columns into lists
+	select(Table1,PC,[],PL),
+	select(Table2,CC,[],CL),
+
+	% combine lists into tables
+	combine_lists(PL,CPL),
+	combine_lists(CL,CCL),
+	
+	% Cartesian product of the two tables
+	product(CPL,CCL,RL),
+	
+	% Get index of column in the two tables
+	indexOf(PC,ICol1,I1),
+	indexOf(CC,ICol2,I2),
+
+	% Get matching rows and print them
+	findall(X,(member(X,RL),list_matches(X,I1,I2)),L),
+	print_list(L).
+
 %% Verify all lists have the same size
 list_symmetric([],_).
-list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE -> list_symmetric(T,LE1)
+list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE
+	-> list_symmetric(T,LE1)
         ; false.
 
 %% Get nth element of each list in list of lists
@@ -513,17 +562,13 @@ lists_nth([H|T],I,CL,R) :- nth0(I,H,X), append(CL,[X],CL1),
 	lists_nth(T,I,CL1,R).
 
 %% Combine a list of n lists of n elements
-combine_lists_p(L,I,LE,CR,R) :- I=LE -> R = CR
+combine_lists(L,I,LE,CR,R) :- I=LE -> R = CR
         ; lists_nth(L,I,[],L1), append(CR,[L1],CR1),
-        I1 is I+1, combine_lists_p(L,I1,LE,CR1,R).
+        I1 is I+1, combine_lists(L,I1,LE,CR1,R).
 
 combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) -> 
-        combine_lists_p([H|T],0,LE,[],R)
+        combine_lists([H|T],0,LE,[],R)
         ; write("Can't combine assymetric lists"), nl,fail.
-
-%% Merge lists into one list
-merge_lists([],_,_).
-merge_lists([H|T],L,[H|T2]) :- merge_lists(T,L,T2).
 
 %% Format list contents as a pretty row
 print_list([],_).
@@ -561,15 +606,15 @@ rm_rule_two_args(Rule) :- rm_rule_no_args(Rule),
         G =.. [Rule,_,_],call(retractall(G)).
 
 %% Prepend a string to each list items
-p_list_prepend_items([],_,IL,R) :- R = IL.
-p_list_prepend_items([H|T],Prefix,IL,R) :- 
+list_prepend_items([],_,IL,R) :- R = IL.
+list_prepend_items([H|T],Prefix,IL,R) :- 
         string_concat(Prefix,"_",TmpStr1),
         string_concat(TmpStr1,H,TmpStr2),
         atom_string(Atom,TmpStr2),
         append(IL,[Atom],IL2),
-        p_list_prepend_items(T,Prefix,IL2,R).
+        list_prepend_items(T,Prefix,IL2,R).
 
-list_prepend_items(L,P,R) :- p_list_prepend_items(L,P,[],R).
+list_prepend_items(L,P,R) :- list_prepend_items(L,P,[],R).
 
 
 %% Get a table's columns and an internal column name, allowing namespaces.
