@@ -504,7 +504,10 @@ cross_join(Table1,Table2) :-
 
 	% cartesian product of the two tables
 	product(CPL,CCL,RL),
-	print_table([PC,CC],RL),!.
+
+        % Flatten lists and print the table
+        findall(X,(member(E,RL),flatten(E,X)),L),
+	print_table([PC,CC],L),!.
 	
 %% Get the index of an item in a list
 indexOf([E|_],E,0) :- !.
@@ -546,7 +549,7 @@ inner_join(Table1,Table2,Col1,Col2) :-
 	indexOf(CC,ICol2,I2),
 
 	% Get matching rows and print them
-	findall(X,(member(X,RL),list_matches(X,I1,I2)),L),
+	findall(Y,(member(X,RL),list_matches(X,I1,I2),flatten(X,Y)),L),
 	print_table([PC,CC],L),!.
 
 %% Verify all lists have the same size
