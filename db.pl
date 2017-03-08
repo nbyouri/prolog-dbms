@@ -251,10 +251,9 @@ table_index([client, commande, detail, produit]).
 % Rules
 %%%
 % Select columns from a table
-select(_,_).
 select(X,C) :-
         table_index(L),member(X,L)
-        -> select(X,C,_)
+        -> select(X,C,_),!
         ; write("No such table exists."),nl.
 
 select(_,[],TL,L) :- L = TL.
@@ -265,7 +264,7 @@ select(X,[H|T],TL,L) :-
 
 select(X,C,_) :-
 	validate_columns(X,C,[],C1),
-	select(X,C1,[],L), combine_lists(L,R), print_list(R).
+	select(X,C1,[],L), combine_lists(L,R), print_list(R), !.
 
 is_column_in_table(Table,Column) :- 
         get_table_columns(Table,L),member(Column, L), !.
@@ -298,7 +297,7 @@ register_table_in_index(Table) :-
 
 create_table(Table, Columns) :- add_rule_empty_list(Table),
         register_table_in_index(Table),
-        create_columns(Table,Columns).
+        create_columns(Table,Columns),!.
 
 %% Drop a column
 drop_column(Table,X) :-
@@ -321,7 +320,7 @@ delete_table_from_index(Table) :-
 drop_table(Table) :- get_table_columns(Table, L),
         drop_columns(Table, L),
         rm_rule_one_arg(Table),
-        delete_table_from_index(Table).
+        delete_table_from_index(Table),!.
 
 drop_tables([]).
 drop_tables([H|T]) :- drop_table(H), drop_tables(T).
@@ -339,7 +338,7 @@ insert_rows(Table,[H|T]) :- insert(Table,H), insert_rows(Table,T).
 
 insert(Table,[ID|Values]) :- get_table_columns(Table,Columns),
         length(Columns,L1), length([ID|Values],L2),
-        L1 = L2 -> insert_row(Table,ID,Columns,[ID|Values])
+        L1 = L2 -> insert_row(Table,ID,Columns,[ID|Values]),!
         ; write("Arguments do not match the table "), write(Table), nl.
 
 %% Check if a string contains only a number
@@ -408,7 +407,7 @@ select_where(Table,Columns,WhereColumn,Op,Val) :-
 	filter(Table,WC,Op,Val,L),
 	where_id(Table,WC,L,L2),
 	select_id(Table,C,L2,L3),
-	print_list(L3).
+	print_list(L3),!.
 
 %% Inverse of select
 select_where_not(Table,Columns,WhereColumn,Op,Val) :-
@@ -422,7 +421,7 @@ select_where_not(Table,Columns,WhereColumn,Op,Val) :-
 	select_id(Table,C,L2,L3),
 
 	remove_list(List2,L3,L4),
-	print_list(L4).
+	print_list(L4),!.
 
 %% Delete row from table
 delete_column_row(_,[],_).
@@ -444,7 +443,7 @@ delete_where(Table,Column,Op,Val) :-
 	validate_columns(Table,*,[],C),
 	filter(Table,WC,Op,Val,L),
 	where_id(Table,WC,L,L2),
-	delete_id(Table,L2,C).
+	delete_id(Table,L2,C),!.
 
 %% Update row from table
 update_row(_,__,[],[]).
@@ -480,7 +479,7 @@ update_where(Table,UpdateColumns,NewValues,WhereColumn,Op,Val) :-
 	delete_where(Table,WhereColumn,Op,Val),
 
 	% Update the appropriate columns
-	update_rows(Table,Orig,L1,UC,NewValues).
+	update_rows(Table,Orig,L1,UC,NewValues),!.
 
 %% Cartesian product of two tables
 pairs(_,[],[]).
@@ -505,7 +504,7 @@ cross_join(Table1,Table2) :-
 
 	% cartesian product of the two tables
 	product(CPL,CCL,RL),
-	print_list(RL).
+	print_list(RL),!.
 	
 %% Get the index of an item in a list
 indexOf([E|_],E,0) :- !.
@@ -548,7 +547,7 @@ inner_join(Table1,Table2,Col1,Col2) :-
 
 	% Get matching rows and print them
 	findall(X,(member(X,RL),list_matches(X,I1,I2)),L),
-	print_list(L).
+	print_list(L),!.
 
 %% Verify all lists have the same size
 list_symmetric([],_).
@@ -580,7 +579,7 @@ print_list([H|T],LN) :-
 
 print_list(L) :- print_list(L,0).
 
-%% Utils
+%% REPL
 db_repl :-
         repeat,
         write('> '),
