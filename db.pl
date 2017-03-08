@@ -482,6 +482,25 @@ update_where(Table,UpdateColumns,NewValues,WhereColumn,Op,Val) :-
 
 	% Update the appropriate columns
 	update_rows(Table,Orig,L1,UC,NewValues).
+
+%% Cross Join
+%% Print table resulting in cartesian product of two tables
+pairs(_,[],[]).
+pairs(A,[B|Bs],[[A,B]|Cs]) :- pairs(A,Bs,Cs).
+
+product([],_,[]).
+product([A|As],Bs,Cs) :- pairs(A,Bs,Xs), product(As,Bs,Ys), append(Xs,Ys,Cs).
+
+%% Test of a cross join between 
+cross_join(Table1,Table2) :-
+	validate_columns(Table1,*,[],PC),
+	validate_columns(Table2,*,[],CC),
+	select_pp(Table1,PC,[],PL),
+	select_pp(Table2,CC,[],CL),
+	combine_lists(PL,CPL),
+	combine_lists(CL,CCL),
+	product(CPL,CCL,RL),
+	print_list(RL).
 	
 %% Verify all lists have the same size
 list_symmetric([],_).
@@ -502,20 +521,19 @@ combine_lists([H|T],R) :- length(H,LE), list_symmetric([H|T],LE) ->
         combine_lists_p([H|T],0,LE,[],R)
         ; write("Can't combine assymetric lists"), nl,fail.
 
-%% Format list contents as a pretty row
-%build_list_format(N,C,T,F) :- N = 0 -> F = T
-%	; C1 is C+5, N1 is N-1, 
-%	string_concat("~s~t~",C1,Str1),
-%	string_concat(Str1,"+",Str2),
-%	string_concat(T,Str2,T1), build_list_format(N1,C1,T1,F).
+%% Merge lists into one list
+merge_lists([],_,_).
+merge_lists([H|T],L,[H|T2]) :- merge_lists(T,L,T2).
 
-print_list([]).
-print_list([H|T]) :- %length(H,LE),
-	%%% couldn't properly format() %%%
-	%build_list_format(LE,0,'',F),
-	%string_concat(F,"~n",F1),
-	%forall(member(L,[H|T]),format(F1,L)).
-	forall(member(L,[H|T]),(write(L),nl)).
+%% Format list contents as a pretty row
+print_list([],_).
+print_list([H|T],LN) :-
+	LN2 is LN + 1,
+	format("~d~t~3||",LN2),
+	write(H),nl,
+	print_list(T,LN2).
+
+print_list(L) :- print_list(L,0).
 
 %% Utils
 db_repl :-
