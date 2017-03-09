@@ -561,7 +561,8 @@ order_by_desc(T,C) :-
         column_as_list(T,VC,L),
 
         % Sort the column to order by
-        sort(L,SL),
+        findall(X,(member(E,L),atom_number(E,X)),NL),
+        sort(0,@>,NL,SL),
 
         % Get ids of sorted columns and print the table 
 	where_id(T,VC,SL,L2),
@@ -575,7 +576,8 @@ order_by_asc(T,C) :-
         column_as_list(T,VC,L),
 
         % Sort the column to order by
-        sort(0,@>,L,SL),
+        findall(X,(member(E,L),atom_number(E,X)),NL),
+        sort(0,@<,NL,SL),
 
         % Get ids of sorted columns and print the table 
 	where_id(T,VC,SL,L2),
