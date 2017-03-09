@@ -552,6 +552,98 @@ inner_join(Table1,Table2,Col1,Col2) :-
 	findall(Y,(member(X,RL),list_matches(X,I1,I2),flatten(X,Y)),L),
 	print_table([PC,CC],L),!.
 
+%% Order By
+% TODO : apply to other selects and join?
+order_by_desc(T,C) :-
+        % Validate column agument 
+        validate_columns(T,[C],[],[VC|_]),
+        validate_columns(T,*,[],AC),
+        column_as_list(T,VC,L),
+
+        % Sort the column to order by
+        sort(L,SL),
+
+        % Get ids of sorted columns and print the table 
+	where_id(T,VC,SL,L2),
+	select_id(T,AC,L2,L3),
+	print_table(AC,L3),!.
+
+order_by_asc(T,C) :-
+        % Validate column agument 
+        validate_columns(T,[C],[],[VC|_]),
+        validate_columns(T,*,[],AC),
+        column_as_list(T,VC,L),
+
+        % Sort the column to order by
+        sort(0,@>,L,SL),
+
+        % Get ids of sorted columns and print the table 
+	where_id(T,VC,SL,L2),
+	select_id(T,AC,L2,L3),
+	print_table(AC,L3),!.
+
+%% Aggregation : max
+select_max(T,C) :-
+        % Get column data
+        validate_columns(T,[C],[],[VC|_]),
+        column_as_list(T,VC,L),
+        
+        % Make sure we're dealing with numbers
+        findall(X,(member(E,L),atom_number(E,X)),NL),
+
+        % Get maximum value
+        max_member(M,NL),
+        write("max("),write(VC),write(") = "),
+        write(M),!.
+
+%% Aggregation : min
+select_min(T,C) :-
+        % Get column data
+        validate_columns(T,[C],[],[VC|_]),
+        column_as_list(T,VC,L),
+        
+        % Make sure we're dealing with numbers
+        findall(X,(member(E,L),atom_number(E,X)),NL),
+
+        % Get maximum value
+        min_member(M,NL),
+        write("min("),write(VC),write(") = "),
+        write(M),!.
+
+%% Aggregation : sum
+select_sum(T,C) :-
+        % Get column data
+        validate_columns(T,[C],[],[VC|_]),
+        column_as_list(T,VC,L),
+
+        % Make sure we're summing numbers
+        findall(X,(member(E,L),atom_number(E,X)),NL),
+        
+        % Get maximum value
+        sum_list(NL,M),
+        write("sum("),write(VC),write(") = "),
+        write(M),!.
+
+%% Aggregation : avg
+avg_list(L,A):- 
+        sum_list(L,S),
+        length(L,LE),
+        LE > 0, 
+        A is S/LE.
+
+select_avg(T,C) :-
+        % Get column data
+        validate_columns(T,[C],[],[VC|_]),
+        column_as_list(T,VC,L),
+
+        % Make sure we're summing numbers
+        findall(X,(member(E,L),atom_number(E,X)),NL),
+        
+        % Get maximum value
+        avg_list(NL,M),
+        write("sum("),write(VC),write(") = "),
+        write(M),!.
+
 %% Verify all lists have the same size
 list_symmetric([],_).
 list_symmetric([H|T],LE) :- length(H,LE1), LE1=LE
@@ -650,6 +742,5 @@ validate_columns(Table,[H|T],C,Columns) :- is_column_in_table(Table,H)
 	write(" in table "),write(Table),nl,fail.
 
 %%% Cleanup up the memory space and reload the file
-%% XXX literal
 cleanup :- table_index(L), drop_tables(L),
         rm_rule_one_arg(table_index), consult("db.pl").
